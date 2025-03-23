@@ -18,15 +18,15 @@
 #ifndef NBT_INTERFACE_HPP
 #define NBT_INTERFACE_HPP
 
+#ifdef __cplusplus
 /* The enum type for recognize */
-
 #ifndef DH_NBT_TYPES
 #define DH_NBT_TYPES
 typedef enum {
     DH_TYPE_INVALID, DH_TYPE_End, DH_TYPE_Byte, DH_TYPE_Short, DH_TYPE_Int, DH_TYPE_Long, DH_TYPE_Float, DH_TYPE_Double, DH_TYPE_Byte_Array, DH_TYPE_String, DH_TYPE_List, DH_TYPE_Compound, DH_TYPE_Int_Array, DH_TYPE_Long_Array} DhNbtType;
+#include "libnbt/nbt.h"
 #endif
 
-#include "libnbt/nbt.h"
 #include <glib.h>
 #include <vector>
 #include <memory>
@@ -34,22 +34,27 @@ typedef enum {
 class DhNbtInstance
 {
 public:
+  /* Create a null instance */
+  DhNbtInstance() 
+  {
+    current_nbt = nullptr;
+    original_nbt = nullptr;
+  };
   DhNbtInstance(const char *filename);
-  [[deprecated("This function will take ownership of the NBT, so please use the filename instead!")]]
-  DhNbtInstance(NBT *root);
+  DhNbtInstance(NBT *root, bool temporary_root);
   ~DhNbtInstance();
 
   DhNbtInstance(gint8 val, const char *key, bool temporary_root);
-  DhNbtInstance(gint16 val, const char *key);
-  DhNbtInstance(gint32 val, const char *key);
-  DhNbtInstance(gint64 val, const char *key);
-  DhNbtInstance(float val, const char *key);
-  DhNbtInstance(double val, const char *key);
-  DhNbtInstance(const char *val, const char *key);
-  DhNbtInstance(gint8 *val, int len, const char *key);
-  DhNbtInstance(gint32 *val, int len, const char *key);
-  DhNbtInstance(gint64 *val, int len, const char *key);
-  DhNbtInstance(const char *key, DhNbtType type);
+  DhNbtInstance(gint16 val, const char *key, bool temporary_root);
+  DhNbtInstance(gint32 val, const char *key, bool temporary_root);
+  DhNbtInstance(gint64 val, const char *key, bool temporary_root);
+  DhNbtInstance(float val, const char *key, bool temporary_root);
+  DhNbtInstance(double val, const char *key, bool temporary_root);
+  DhNbtInstance(const char *val, const char *key, bool temporary_root);
+  DhNbtInstance(gint8 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(gint32 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(gint64 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(const char *key, DhNbtType type, bool temporary_root);
 
   void set_free_only_instance(bool foi);
 
@@ -77,6 +82,7 @@ public:
   bool next();
   bool parent();
   bool child();
+  bool child(const char* key);
   void goto_root();
   bool is_type(DhNbtType type);
   const char *get_key();
@@ -87,11 +93,14 @@ public:
   gint64 get_long();
   gint64 get_integer();
 
+  float get_float();
+  double get_double();
+
   /* The array type should not be freed unless the memory is freed! */
   const gchar *get_string();
-  const gint8 *get_byte_array();
-  const gint32 *get_int_array();
-  const gint64 *get_long_array();
+  const gint8 *get_byte_array(int& len);
+  const gint32 *get_int_array(int& len);
+  const gint64 *get_long_array(int& len);
 
   bool prepend(DhNbtInstance child);
   bool insert_after(DhNbtInstance sibling, DhNbtInstance node);
@@ -109,5 +118,14 @@ private:
     /* This can be nonexist, based on the implement */
     std::vector<NBT*> tree_struct;
 };
+
+extern "C"
+{
+#endif
+  void* dh_nbt_instance_cpp_new();
+  void  dh_nbt_instance_cpp_free(void* mem);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NBT_INTERFACE_HPP */

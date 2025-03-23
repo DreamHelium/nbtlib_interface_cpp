@@ -17,6 +17,7 @@
 
 #include "nbt_interface.hpp"
 #include <memory>
+#include <stdexcept>
 
 static void parse_nbt_real(DhNbtInstance& instance, NBT* nbt)
 {
@@ -28,6 +29,29 @@ static void parse_nbt_tmp(DhNbtInstance& instance, NBT* nbt)
 {
     instance.set_temp_original_nbt(nbt);
     instance.set_current_nbt(nbt);
+}
+
+static void parse_nbt(DhNbtInstance& instance, NBT* nbt, bool tr)
+{
+    if(tr) parse_nbt_tmp(instance, nbt);
+    else   parse_nbt_real(instance, nbt);
+}
+
+static bool has_child(DhNbtInstance parent, DhNbtInstance child)
+{
+    NBT* parent_node = parent.get_current_nbt();
+    if(parent_node->child && child.is_non_null())
+    {
+        NBT* child_node = parent_node->child;
+        for(; child_node ; child_node = child_node->next)
+        {
+            if(child_node == child.get_current_nbt()) return true;
+        }
+        return false;
+    }
+    else if(child.is_non_null()) /* Parent node has no child */
+        return false;
+    else return true;  /* child is null */
 }
 
 static char *dh_strdup(const char *o_str)
@@ -75,9 +99,9 @@ DhNbtInstance::DhNbtInstance(const char* filename)
     }
 }
 
-DhNbtInstance::DhNbtInstance(NBT* nbt)
+DhNbtInstance::DhNbtInstance(NBT* nbt, bool tr)
 {
-    parse_nbt_real(*this, nbt);
+    parse_nbt(*this, nbt, tr);
 }
 
 DhNbtInstance::~DhNbtInstance()
@@ -90,66 +114,65 @@ DhNbtInstance::DhNbtInstance(gint8 val, const char *key, bool temporary_root)
     new_nbt->type = TAG_Byte;
     new_nbt->value_i = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    if(!temporary_root) parse_nbt_real(*this, new_nbt);
-    else parse_nbt_tmp(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint16 val, const char *key)
+DhNbtInstance::DhNbtInstance(gint16 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Short;
     new_nbt->value_i = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint32 val, const char *key)
+DhNbtInstance::DhNbtInstance(gint32 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Int;
     new_nbt->value_i = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint64 val, const char *key)
+DhNbtInstance::DhNbtInstance(gint64 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Long;
     new_nbt->value_i = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(float val, const char *key)
+DhNbtInstance::DhNbtInstance(float val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Float;
     new_nbt->value_d = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(double val, const char *key)
+DhNbtInstance::DhNbtInstance(double val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Double;
     new_nbt->value_d = val;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(const char *val, const char *key)
+DhNbtInstance::DhNbtInstance(const char *val, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_String;
     new_nbt->value_a.value = dh_strdup(val);
     new_nbt->value_a.len = strlen(val) + 1;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint8 *val, int len, const char *key)
+DhNbtInstance::DhNbtInstance(gint8 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -159,10 +182,10 @@ DhNbtInstance::DhNbtInstance(gint8 *val, int len, const char *key)
     new_nbt->value_a.value = new_array;
     new_nbt->value_a.len = len;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint32 *val, int len, const char *key)
+DhNbtInstance::DhNbtInstance(gint32 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -172,10 +195,10 @@ DhNbtInstance::DhNbtInstance(gint32 *val, int len, const char *key)
     new_nbt->value_a.value = new_array;
     new_nbt->value_a.len = len;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint64 *val, int len, const char *key)
+DhNbtInstance::DhNbtInstance(gint64 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -185,15 +208,15 @@ DhNbtInstance::DhNbtInstance(gint64 *val, int len, const char *key)
     new_nbt->value_a.value = new_array;
     new_nbt->value_a.len = len;
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(const char *key, DhNbtType type)
+DhNbtInstance::DhNbtInstance(const char *key, DhNbtType type, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = (NBT_Tags)(type - 1);
     new_nbt->key = key ? dh_strdup(key) : NULL;
-    parse_nbt_real(*this, new_nbt);
+    parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtType DhNbtInstance::get_type()
@@ -222,7 +245,7 @@ bool DhNbtInstance::next()
 {
     if(is_non_null())
     {
-        current_nbt = current_nbt->prev;
+        current_nbt = current_nbt->next;
         return true;
     }
     else return false;
@@ -263,6 +286,22 @@ bool DhNbtInstance::child()
     else return false;
 }
 
+bool DhNbtInstance::child(const char* key)
+{
+    if(child())
+    {
+        do
+        {
+            if(strcmp(get_key(), key))
+                return true;
+        }
+        while(next());
+        parent();
+        return false;
+    }
+    else return false;
+}
+
 void DhNbtInstance::goto_root()
 {
     current_nbt = get_original_nbt();
@@ -288,6 +327,71 @@ bool DhNbtInstance::prepend(DhNbtInstance child)
     else return false;
 }
 
+bool DhNbtInstance::insert_after(DhNbtInstance sibling, DhNbtInstance node)
+{
+    if(has_child(*this, sibling))
+    {
+        if(sibling.is_non_null())
+        {
+            NBT* sibling_node = sibling.get_current_nbt();
+            if(sibling_node->next)
+                sibling_node->next->prev = node.get_current_nbt();
+            node.get_current_nbt()->next = sibling_node->next;
+            node.get_current_nbt()->prev = sibling_node;
+            sibling_node->next = node.get_current_nbt();
+        }
+        else
+        {
+            if(current_nbt->child)
+            {
+                node.get_current_nbt()->next = current_nbt->child;
+                current_nbt->child->prev = node.get_current_nbt();
+            }
+            current_nbt->child = node.get_current_nbt();
+        }
+        return true;
+    }
+    else return false;
+}
+
+bool DhNbtInstance::insert_before(DhNbtInstance sibling, DhNbtInstance node)
+{
+    if(has_child(*this, sibling))
+    {
+        if(sibling.is_non_null())
+        {
+            NBT* sibling_node = sibling.current_nbt;
+            if(sibling_node->prev)
+            {
+                node.current_nbt->prev = sibling_node->prev;
+                node.current_nbt->prev->next = node.current_nbt;
+                node.current_nbt->next = sibling_node;
+                sibling_node->prev = node.current_nbt;
+            }
+            else
+            {
+                current_nbt->child = node.current_nbt;
+                node.current_nbt->next = sibling_node;
+                sibling_node->prev = node.current_nbt;
+            }
+        }
+        else
+        {
+            if(current_nbt->child)
+            {
+                NBT* sibling_node = current_nbt->child;
+                while(sibling_node->next)
+                    sibling_node = sibling_node->next;
+                node.current_nbt->prev = sibling_node;
+                sibling_node->next = node.current_nbt;
+            }
+            else current_nbt->child = node.current_nbt;
+        }
+        return true;
+    }
+    else return false;
+}
+
 void DhNbtInstance::set_free_only_instance(bool foi)
 {
     if(foi)
@@ -295,4 +399,99 @@ void DhNbtInstance::set_free_only_instance(bool foi)
         original_nbt_storage.reset((NBT*)nullptr, [](NBT*) {});
     }
     else original_nbt_storage.reset(original_nbt, NBT_Free);
+}
+
+gint8 DhNbtInstance::get_byte()
+{
+    if(is_type(DH_TYPE_Byte)) return current_nbt->value_i;
+    else throw std::domain_error("Not the right type!");
+}
+
+gint16 DhNbtInstance::get_short()
+{
+    if(is_type(DH_TYPE_Short)) return current_nbt->value_i;
+    else throw std::domain_error("Not the right type!");
+}
+
+gint32 DhNbtInstance::get_int()
+{
+    if(is_type(DH_TYPE_Int)) return current_nbt->value_i;
+    else throw std::domain_error("Not the right type!");
+}
+
+gint64 DhNbtInstance::get_long()
+{
+    if(is_type(DH_TYPE_Long)) return current_nbt->value_i;
+    else throw std::domain_error("Not the right type!");
+}
+
+gint64 DhNbtInstance::get_integer()
+{
+    auto type = get_type();
+    if(type >= DH_TYPE_Byte && type <= DH_TYPE_Long)
+        return current_nbt->value_i;
+    else throw std::domain_error("Not the right type!");
+}
+
+float DhNbtInstance::get_float()
+{
+    if(is_type(DH_TYPE_Float)) return current_nbt->value_d;
+    else throw std::domain_error("Not the right type!");
+}
+
+double DhNbtInstance::get_double()
+{
+    if(is_type(DH_TYPE_Double)) return current_nbt->value_d;
+    else throw std::domain_error("Not the right type!");
+}
+
+const gchar* DhNbtInstance::get_string()
+{
+    if(is_type(DH_TYPE_String)) return (const char*)current_nbt->value_a.value;
+    else throw std::domain_error("Not the right type!");
+}
+
+const gint8* DhNbtInstance::get_byte_array(int& len)
+{
+    if(is_type(DH_TYPE_Byte_Array))
+    {
+        len = current_nbt->value_a.len;
+        return (gint8*)current_nbt->value_a.value;
+    }
+    else throw std::domain_error("Not the right type!");
+}
+
+
+const gint32* DhNbtInstance::get_int_array(int& len)
+{
+    if(is_type(DH_TYPE_Int_Array))
+    {
+        len = current_nbt->value_a.len;
+        return (gint32*)current_nbt->value_a.value;
+    }
+    else throw std::domain_error("Not the right type!");
+}
+
+const gint64* DhNbtInstance::get_long_array(int& len)
+{
+    if(is_type(DH_TYPE_Long_Array))
+    {
+        len = current_nbt->value_a.len;
+        return (gint64*)current_nbt->value_a.value;
+    }
+    else throw std::domain_error("Not the right type!");
+}
+
+extern "C"
+{
+    void* dh_nbt_instance_cpp_new()
+    {
+        return new DhNbtInstance();
+    }
+
+    void  dh_nbt_instance_cpp_free(void* mem)
+    {
+        DhNbtInstance* instance = dynamic_cast<DhNbtInstance*>((DhNbtInstance*)mem);
+        delete instance;
+    }
 }
