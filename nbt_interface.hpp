@@ -86,6 +86,7 @@ public:
   void goto_root();
   bool is_type(DhNbtType type);
   const char *get_key();
+  void make_invalid();
 
   gint8 get_byte();
   gint16 get_short();

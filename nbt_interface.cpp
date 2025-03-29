@@ -264,23 +264,18 @@ bool DhNbtInstance::is_type(DhNbtType type)
 
 bool DhNbtInstance::parent()
 {
-    if(tree_struct.size() == 1)
-        return false;
-    else
-    {
-        int len = tree_struct.size();
-        current_nbt = tree_struct[len - 1];
-        tree_struct.resize(len - 1);
-        return true;
-    }
+    int len = tree_struct.size();
+    current_nbt = tree_struct[len - 1];
+    tree_struct.resize(len - 1);
+    return true;
 }
 
 bool DhNbtInstance::child()
 {
     if(is_non_null() && (is_type(DH_TYPE_Compound) || is_type(DH_TYPE_List)))
     {
-        current_nbt = current_nbt->child;
         tree_struct.push_back(current_nbt);
+        current_nbt = current_nbt->child;
         return true;
     }
     else return false;
@@ -292,7 +287,7 @@ bool DhNbtInstance::child(const char* key)
     {
         do
         {
-            if(strcmp(get_key(), key))
+            if(get_key() && !strcmp(get_key(), key))
                 return true;
         }
         while(next());
@@ -310,7 +305,14 @@ void DhNbtInstance::goto_root()
 
 const char* DhNbtInstance::get_key()
 {
-    return current_nbt->key;
+    if(is_non_null())
+        return current_nbt->key;
+    else return nullptr;
+}
+
+void DhNbtInstance::make_invalid()
+{
+    current_nbt = nullptr;
 }
 
 bool DhNbtInstance::prepend(DhNbtInstance child)
