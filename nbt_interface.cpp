@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
 #include "nbt_interface.hpp"
+#include "gio/gio.h"
 #include <memory>
 #include <stdexcept>
 
@@ -482,6 +483,78 @@ const gint64* DhNbtInstance::get_long_array(int& len)
         return (gint64*)current_nbt->value_a.value;
     }
     else throw std::domain_error("Not the right type!");
+}
+
+bool DhNbtInstance::save_to_file(const char* pos)
+{
+    NBT* root = get_original_nbt();
+    int bit = 1;
+    size_t len = 0;
+#ifndef LIBNBT_USE_LIBDEFLATE
+    size_t old_len = 0;
+#endif
+    uint8_t* data = NULL;
+    while(1)
+    {
+        len = 1 << bit;
+        data = (uint8_t*)malloc(len * sizeof(uint8_t));
+        int ret = NBT_Pack(root, data, &len);
+        if(ret == 0)
+        {
+#ifndef LIBNBT_USE_LIBDEFLATE
+            if(old_len != len) // compress not finish due to a bug in old libnbt (in submodule)
+            {
+                old_len = len;
+                free(data);
+                bit++;
+                continue;
+            }
+#endif
+            if(pos)
+            {
+                GFile* file = g_file_new_for_path(pos);
+                if(!file)
+                {
+                    free(data);
+                    return false;
+                }
+                if(!g_file_query_exists(file, NULL))
+                    g_file_create(file, G_FILE_CREATE_NONE, NULL, NULL);
+                GFileIOStream* fios = g_file_open_readwrite(file, NULL, NULL);
+                if(fios)
+                {
+                    GOutputStream* os = g_io_stream_get_output_stream(G_IO_STREAM(fios));
+                    int ret_d = g_output_stream_write(os, data, len, NULL, NULL);
+                    bool ret = (ret_d == -1 ? false : true);
+                    g_object_unref(fios);
+                    free(data);
+                    g_object_unref(file);
+                    return ret;
+                }
+                else
+                {
+                    g_object_unref(file);
+                    free(data);
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if(bit < 25)
+        {
+            free(data);
+            bit++; // It might be not enough space
+        }
+        else
+        {
+            free(data);
+            return false;
+        }
+    }
+    return false;
 }
 
 extern "C"
