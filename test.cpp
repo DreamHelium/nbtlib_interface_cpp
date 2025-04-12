@@ -21,9 +21,7 @@ int main()
     */
 
     DhNbtInstance root(NULL, DH_TYPE_Compound);
-    root.get_byte();
     DhNbtInstance child((gint8)10, "key", true);
-    child.set_free_only_instance(true);
     std::cout << (child.get_original_nbt()->key) << "\n";
     root.prepend(child);
     std::cout << root.child() << "\n";

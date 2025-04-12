@@ -16,9 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
 #include "nbt_interface.hpp"
-#include "gio/gio.h"
-#include <memory>
 #include <stdexcept>
+#include <gio/gio.h>
 
 static void parse_nbt_real(DhNbtInstance& instance, NBT* nbt)
 {
@@ -173,7 +172,7 @@ DhNbtInstance::DhNbtInstance(const char *val, const char *key, bool temporary_ro
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint8 *val, int len, const char *key, bool temporary_root)
+DhNbtInstance::DhNbtInstance(const gint8 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -186,7 +185,7 @@ DhNbtInstance::DhNbtInstance(gint8 *val, int len, const char *key, bool temporar
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint32 *val, int len, const char *key, bool temporary_root)
+DhNbtInstance::DhNbtInstance(const gint32 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -199,7 +198,7 @@ DhNbtInstance::DhNbtInstance(gint32 *val, int len, const char *key, bool tempora
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(gint64 *val, int len, const char *key, bool temporary_root)
+DhNbtInstance::DhNbtInstance(const gint64 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
     new_nbt->type = TAG_Byte_Array;
@@ -212,7 +211,7 @@ DhNbtInstance::DhNbtInstance(gint64 *val, int len, const char *key, bool tempora
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
-DhNbtInstance::DhNbtInstance(const char *key, DhNbtType type, bool temporary_root)
+DhNbtInstance::DhNbtInstance(DhNbtType type, const char* key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
     new_nbt->type = (NBT_Tags)(type - 1);
@@ -311,6 +310,15 @@ const char* DhNbtInstance::get_key()
     else return nullptr;
 }
 
+void DhNbtInstance::set_key(const char* key)
+{
+    if(is_non_null())
+    {
+        free(current_nbt->key);
+        current_nbt->key = key ? dh_strdup(key) : nullptr;
+    }
+}
+
 void DhNbtInstance::make_invalid()
 {
     current_nbt = nullptr;
@@ -395,15 +403,6 @@ bool DhNbtInstance::insert_before(DhNbtInstance sibling, DhNbtInstance node)
     else return false;
 }
 
-void DhNbtInstance::set_free_only_instance(bool foi)
-{
-    if(foi)
-    {
-        original_nbt_storage.reset((NBT*)nullptr, [](NBT*) {});
-    }
-    else original_nbt_storage.reset(original_nbt, NBT_Free);
-}
-
 gint8 DhNbtInstance::get_byte()
 {
     if(is_type(DH_TYPE_Byte)) return current_nbt->value_i;
@@ -485,6 +484,13 @@ const gint64* DhNbtInstance::get_long_array(int& len)
     else throw std::domain_error("Not the right type!");
 }
 
+void DhNbtInstance::set_string(const char* str)
+{
+    free(current_nbt->value_a.value);
+    current_nbt->value_a.value = dh_strdup(str);
+    current_nbt->value_a.len = strlen(str) + 1;
+}
+
 bool DhNbtInstance::save_to_file(const char* pos)
 {
     NBT* root = get_original_nbt();
@@ -555,6 +561,88 @@ bool DhNbtInstance::save_to_file(const char* pos)
         }
     }
     return false;
+}
+
+DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
+{
+    if(is_type(DH_TYPE_Byte))
+        return DhNbtInstance(get_byte(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Short))
+        return DhNbtInstance(get_short(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Int))
+        return DhNbtInstance(get_int(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Long))
+        return DhNbtInstance(get_long(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Float))
+        return DhNbtInstance(get_float(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Double))
+        return DhNbtInstance(get_double(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_String))
+        return DhNbtInstance(get_string(), get_key(), temp_root);
+    else if(is_type(DH_TYPE_Byte_Array))
+    {
+        int len = 0;
+        auto arr = get_byte_array(len);
+        return DhNbtInstance(arr, len, get_key(), temp_root);
+    }
+    else if(is_type(DH_TYPE_Int_Array))
+    {
+        int len = 0;
+        auto arr = get_int_array(len);
+        return DhNbtInstance(arr, len, get_key(), temp_root);
+    }
+    else if(is_type(DH_TYPE_Long_Array))
+    {
+        int len = 0;
+        auto arr = get_long_array(len);
+        return DhNbtInstance(arr, len, get_key(), temp_root);
+    }
+    else
+    {
+        /* The outer struct */
+        DhNbtInstance ret(get_type(), get_key(), temp_root);
+        DhNbtInstance origin_child(*this);
+        DhNbtInstance head;
+        DhNbtInstance prev;
+        DhNbtInstance cur;
+        origin_child.child();
+        DhNbtInstance oc(origin_child);
+        /* Assign the child value */
+        for(; origin_child.is_non_null() ; origin_child.next())
+        {
+            cur = origin_child.dup_current_as_original(true);
+            if(origin_child == oc) head = cur;
+            cur.current_nbt->prev = prev.current_nbt;
+            if(prev.is_non_null()) prev.current_nbt->next = cur.current_nbt;
+            prev = cur;
+        }
+        /* Then assign the parent */
+        return ret;
+    }
+}
+
+bool DhNbtInstance::rm_node(const char* key)
+{
+    DhNbtInstance child(*this);
+    if(child.child(key))
+    {
+        if(child.is_non_null())
+        {
+            NBT* prev = child.current_nbt->prev;
+            NBT* next = child.current_nbt->next;
+
+            child.current_nbt->prev = nullptr;
+            child.current_nbt->next = nullptr;
+            NBT_Free(child.current_nbt);
+
+            if(prev) prev->next = next;
+            if(next) next->prev = prev;
+            if(!prev) current_nbt->child = next;
+            return true;
+        }
+        else return false;
+    }
+    else return false;
 }
 
 extern "C"

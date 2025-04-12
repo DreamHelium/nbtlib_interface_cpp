@@ -51,12 +51,19 @@ public:
   DhNbtInstance(float val, const char *key, bool temporary_root);
   DhNbtInstance(double val, const char *key, bool temporary_root);
   DhNbtInstance(const char *val, const char *key, bool temporary_root);
-  DhNbtInstance(gint8 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(gint32 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(gint64 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(const char *key, DhNbtType type, bool temporary_root);
+  DhNbtInstance(const gint8 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(const gint32 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(const gint64 *val, int len, const char *key, bool temporary_root);
+  DhNbtInstance(DhNbtType type, const char* key, bool temporary_root);
 
-  void set_free_only_instance(bool foi);
+  bool operator ==(DhNbtInstance a)
+  {
+    if(current_nbt == a.current_nbt && original_nbt == a.original_nbt)
+      return true;
+    else return false;
+  };
+
+  DhNbtInstance dup_current_as_original(bool temporary_root);
 
   NBT *get_original_nbt() { return original_nbt; }
   NBT *get_current_nbt() { return current_nbt; }
@@ -83,10 +90,14 @@ public:
   bool parent();
   bool child();
   bool child(const char* key);
+  // bool child(int index);
   void goto_root();
   bool is_type(DhNbtType type);
   const char *get_key();
+  void set_key(const char* key);
   void make_invalid();
+  bool rm_node(const char* key);
+  // bool rm_node(int index);
 
   gint8 get_byte();
   gint16 get_short();
@@ -102,6 +113,8 @@ public:
   const gint8 *get_byte_array(int& len);
   const gint32 *get_int_array(int& len);
   const gint64 *get_long_array(int& len);
+
+  void set_string(const char* str);
 
   bool prepend(DhNbtInstance child);
   bool insert_after(DhNbtInstance sibling, DhNbtInstance node);
