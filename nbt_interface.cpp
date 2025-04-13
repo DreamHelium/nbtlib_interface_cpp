@@ -16,22 +16,23 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
 #include "nbt_interface.hpp"
+#include "nbt.h"
 #include <stdexcept>
 #include <gio/gio.h>
 
-static void parse_nbt_real(DhNbtInstance& instance, NBT* nbt)
+static void parse_nbt_real(DhNbtInstance& instance, nbt_node* nbt)
 {
     instance.set_original_nbt(nbt);
     instance.set_current_nbt(nbt);
 }
 
-static void parse_nbt_tmp(DhNbtInstance& instance, NBT* nbt)
+static void parse_nbt_tmp(DhNbtInstance& instance, nbt_node* nbt)
 {
     instance.set_temp_original_nbt(nbt);
     instance.set_current_nbt(nbt);
 }
 
-static void parse_nbt(DhNbtInstance& instance, NBT* nbt, bool tr)
+static void parse_nbt(DhNbtInstance& instance, nbt_node* nbt, bool tr)
 {
     if(tr) parse_nbt_tmp(instance, nbt);
     else   parse_nbt_real(instance, nbt);
@@ -69,39 +70,24 @@ static char *dh_strdup(const char *o_str)
 #endif
 }
 
-static NBT* ret_non_filled_nbt()
+static nbt_node* ret_non_filled_nbt()
 {
-    NBT* new_nbt = (NBT*)malloc(sizeof(NBT));
-    memset(new_nbt, 0, sizeof(NBT));
+    nbt_node* new_nbt = (nbt_node*)malloc(sizeof(nbt_node));
+    memset(new_nbt, 0, sizeof(nbt_node));
     return new_nbt;
 }
 
 DhNbtInstance::DhNbtInstance(const char* filename)
 {
-    gsize len = 0;
-    guint8* content = nullptr;
-    GError* err = nullptr;
-
-    if(g_file_get_contents(filename, (char**)&content, &len, &err))
-    {
-        NBT* nbt = NBT_Parse(content, len);
-        g_free(content);
-        if(nbt)
-        {
-            parse_nbt_real(*this, nbt);
-        }
-        else original_nbt = nullptr;
-    }
-    else
-    {
-        g_error_free(err);
-        original_nbt = nullptr;
-    }
+    nbt_node* nbt = nbt_parse_path(filename);
+    set_original_nbt(nbt);
+    current_nbt = nbt;
 }
 
-DhNbtInstance::DhNbtInstance(NBT* nbt, bool tr)
+DhNbtInstance::DhNbtInstance(nbt_node* nbt, bool tr)
 {
     parse_nbt(*this, nbt, tr);
+    current_nbt = nbt;
 }
 
 DhNbtInstance::~DhNbtInstance()
@@ -111,118 +97,117 @@ DhNbtInstance::~DhNbtInstance()
 DhNbtInstance::DhNbtInstance(gint8 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte;
-    new_nbt->value_i = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_BYTE;
+    new_nbt->payload.tag_byte = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(gint16 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Short;
-    new_nbt->value_i = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_SHORT;
+    new_nbt->payload.tag_short = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(gint32 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Int;
-    new_nbt->value_i = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_INT;
+    new_nbt->payload.tag_int = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(gint64 val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Long;
-    new_nbt->value_i = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_LONG;
+    new_nbt->payload.tag_long = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(float val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Float;
-    new_nbt->value_d = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_FLOAT;
+    new_nbt->payload.tag_float = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(double val, const char *key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Double;
-    new_nbt->value_d = val;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = TAG_DOUBLE;
+    new_nbt->payload.tag_double = val;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(const char *val, const char *key, bool temporary_root)
 {
-    NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_String;
-    new_nbt->value_a.value = dh_strdup(val);
-    new_nbt->value_a.len = strlen(val) + 1;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    nbt_node* new_nbt = ret_non_filled_nbt();
+    new_nbt->type = TAG_STRING;
+    new_nbt->payload.tag_string = dh_strdup(val);
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(const gint8 *val, int len, const char *key, bool temporary_root)
 {
-    NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte_Array;
+    nbt_node* new_nbt = ret_non_filled_nbt();
+    new_nbt->type = TAG_BYTE_ARRAY;
     int byte = len * sizeof(int8_t);
     int8_t* new_array = (gint8*)malloc(byte);
     memcpy(new_array, val, byte);
-    new_nbt->value_a.value = new_array;
-    new_nbt->value_a.len = len;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->payload.tag_byte_array.data = (guchar*)new_array;
+    new_nbt->payload.tag_byte_array.length = len;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(const gint32 *val, int len, const char *key, bool temporary_root)
 {
-    NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte_Array;
+    nbt_node* new_nbt = ret_non_filled_nbt();
+    new_nbt->type = TAG_INT_ARRAY;
     int byte = len * sizeof(int32_t);
     int32_t* new_array = (gint32*)malloc(byte);
     memcpy(new_array, val, byte);
-    new_nbt->value_a.value = new_array;
-    new_nbt->value_a.len = len;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->payload.tag_int_array.data = new_array;
+    new_nbt->payload.tag_int_array.length = len;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(const gint64 *val, int len, const char *key, bool temporary_root)
 {
-    NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte_Array;
+    nbt_node* new_nbt = ret_non_filled_nbt();
+    new_nbt->type = TAG_LONG_ARRAY;
     int byte = len * sizeof(int64_t);
     int64_t* new_array = (gint64*)malloc(byte);
     memcpy(new_array, val, byte);
-    new_nbt->value_a.value = new_array;
-    new_nbt->value_a.len = len;
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->payload.tag_long_array.data = new_array;
+    new_nbt->payload.tag_long_array.length = len;
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtInstance::DhNbtInstance(DhNbtType type, const char* key, bool temporary_root)
 {
     auto new_nbt = ret_non_filled_nbt();
-    new_nbt->type = (NBT_Tags)(type - 1);
-    new_nbt->key = key ? dh_strdup(key) : NULL;
+    new_nbt->type = (nbt_type)(type - 1);
+    new_nbt->name = key ? dh_strdup(key) : NULL;
     parse_nbt(*this, new_nbt, temporary_root);
 }
 
 DhNbtType DhNbtInstance::get_type()
 {
     if(this->current_nbt)
-        return (DhNbtType)(this->current_nbt->type + 1);
+        return (DhNbtType)(current_nbt->type + 1);
     else return DH_TYPE_INVALID;
 }
 
@@ -233,9 +218,9 @@ bool DhNbtInstance::is_non_null()
 
 bool DhNbtInstance::prev()
 {
-    if(this->is_non_null())
+    if(is_non_null())
     {
-        this->current_nbt = this->current_nbt->prev;
+        current_nbt = ;
         return true;
     }
     else return false;

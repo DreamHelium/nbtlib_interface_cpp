@@ -24,12 +24,12 @@
 #define DH_NBT_TYPES
 typedef enum {
     DH_TYPE_INVALID, DH_TYPE_End, DH_TYPE_Byte, DH_TYPE_Short, DH_TYPE_Int, DH_TYPE_Long, DH_TYPE_Float, DH_TYPE_Double, DH_TYPE_Byte_Array, DH_TYPE_String, DH_TYPE_List, DH_TYPE_Compound, DH_TYPE_Int_Array, DH_TYPE_Long_Array} DhNbtType;
-#include "libnbt/nbt.h"
 #endif
 
 #include <glib.h>
 #include <vector>
 #include <memory>
+#include "nbt.h"
 
 class DhNbtInstance
 {
@@ -41,7 +41,7 @@ public:
     original_nbt = nullptr;
   };
   DhNbtInstance(const char *filename);
-  DhNbtInstance(NBT *root, bool temporary_root);
+  DhNbtInstance(nbt_node* root, bool temporary_root);
   ~DhNbtInstance();
 
   DhNbtInstance(gint8 val, const char *key, bool temporary_root);
@@ -65,23 +65,20 @@ public:
 
   DhNbtInstance dup_current_as_original(bool temporary_root);
 
-  NBT *get_original_nbt() { return original_nbt; }
-  NBT *get_current_nbt() { return current_nbt; }
-  auto get_tree_struct() { return tree_struct; }
-  int  get_nbt_rc()      { return original_nbt_storage.use_count(); }
+  auto get_original_nbt() { return original_nbt; }
+  auto get_current_nbt() { return current_nbt; }
 
-  void set_original_nbt(NBT* nbt) 
+  void set_original_nbt(nbt_node* nbt) 
   { 
     original_nbt = nbt;
-    original_nbt_storage.reset(nbt, NBT_Free); 
+    original_nbt_storage.reset(nbt, nbt_free); 
   }
-  void set_temp_original_nbt(NBT* nbt)
+  void set_temp_original_nbt(nbt_node* nbt)
   {
     original_nbt = nbt;
-    original_nbt_storage.reset(nbt, [](NBT*) {});
+    original_nbt_storage.reset(nbt, [](nbt_node*) {});
   }
-  void set_current_nbt(NBT* nbt)  { current_nbt = nbt; }
-  void set_tree_struct(std::vector<NBT*> arr) { tree_struct = arr; }
+  void set_current_nbt(nbt_node* nbt)  { current_nbt = nbt; }
 
   DhNbtType get_type();
   bool is_non_null();
@@ -124,13 +121,15 @@ public:
 
 private:
     /* Root NBT storage */
-    std::shared_ptr<NBT> original_nbt_storage;
+    std::shared_ptr<nbt_node> original_nbt_storage;
     /* Real Root NBT */
-    NBT* original_nbt;
+    nbt_node* original_nbt;
     /* The current position of NBT */
-    NBT* current_nbt;
+    nbt_node* current_nbt;
+    /* Hmmm */
+    list_head head;
     /* This can be nonexist, based on the implement */
-    std::vector<NBT*> tree_struct;
+    std::vector<nbt_node*> tree_struct;
 };
 
 extern "C"
