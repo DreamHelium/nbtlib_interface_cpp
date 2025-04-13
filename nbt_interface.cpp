@@ -617,6 +617,7 @@ DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
             prev = cur;
         }
         /* Then assign the parent */
+        ret.prepend(head);
         return ret;
     }
 }
