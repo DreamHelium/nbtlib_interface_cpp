@@ -88,16 +88,19 @@ public:
   bool prev();
   bool next();
   bool parent();
+  int child_value();
   bool child();
   bool child(const char* key);
-  // bool child(int index);
+  bool child(int index);
   void goto_root();
   bool is_type(DhNbtType type);
   const char *get_key();
   void set_key(const char* key);
   void make_invalid();
   bool rm_node(const char* key);
-  // bool rm_node(int index);
+  bool rm_node(int index);
+
+  void self_free();
 
   gint8 get_byte();
   gint16 get_short();

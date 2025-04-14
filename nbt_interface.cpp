@@ -188,7 +188,7 @@ DhNbtInstance::DhNbtInstance(const gint8 *val, int len, const char *key, bool te
 DhNbtInstance::DhNbtInstance(const gint32 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte_Array;
+    new_nbt->type = TAG_Int_Array;
     int byte = len * sizeof(int32_t);
     int32_t* new_array = (gint32*)malloc(byte);
     memcpy(new_array, val, byte);
@@ -201,7 +201,7 @@ DhNbtInstance::DhNbtInstance(const gint32 *val, int len, const char *key, bool t
 DhNbtInstance::DhNbtInstance(const gint64 *val, int len, const char *key, bool temporary_root)
 {
     NBT* new_nbt = ret_non_filled_nbt();
-    new_nbt->type = TAG_Byte_Array;
+    new_nbt->type = TAG_Long_Array;
     int byte = len * sizeof(int64_t);
     int64_t* new_array = (gint64*)malloc(byte);
     memcpy(new_array, val, byte);
@@ -291,6 +291,20 @@ bool DhNbtInstance::child(const char* key)
                 return true;
         }
         while(next());
+        parent();
+        return false;
+    }
+    else return false;
+}
+
+bool DhNbtInstance::child(int index)
+{
+    if(child())
+    {
+        bool ret = true;
+        for(int i = 0 ; i < index ; i++)
+            ret = next();
+        if(ret) return true;
         parent();
         return false;
     }
@@ -503,15 +517,16 @@ bool DhNbtInstance::save_to_file(const char* pos)
     while(1)
     {
         len = 1 << bit;
-        data = (uint8_t*)malloc(len * sizeof(uint8_t));
-        int ret = NBT_Pack(root, data, &len);
+        data = (uint8_t*)g_new0(uint8_t, len);
+        NBT_Error err;
+        int ret = NBT_Pack_Opt(root, data, &len, NBT_Compression_GZIP, &err);
         if(ret == 0)
         {
 #ifndef LIBNBT_USE_LIBDEFLATE
             if(old_len != len) // compress not finish due to a bug in old libnbt (in submodule)
             {
                 old_len = len;
-                free(data);
+                g_free(data);
                 bit++;
                 continue;
             }
@@ -521,7 +536,7 @@ bool DhNbtInstance::save_to_file(const char* pos)
                 GFile* file = g_file_new_for_path(pos);
                 if(!file)
                 {
-                    free(data);
+                    g_free(data);
                     return false;
                 }
                 if(!g_file_query_exists(file, NULL))
@@ -533,14 +548,14 @@ bool DhNbtInstance::save_to_file(const char* pos)
                     int ret_d = g_output_stream_write(os, data, len, NULL, NULL);
                     bool ret = (ret_d == -1 ? false : true);
                     g_object_unref(fios);
-                    free(data);
+                    g_free(data);
                     g_object_unref(file);
                     return ret;
                 }
                 else
                 {
                     g_object_unref(file);
-                    free(data);
+                    g_free(data);
                     return false;
                 }
             }
@@ -549,14 +564,14 @@ bool DhNbtInstance::save_to_file(const char* pos)
                 return false;
             }
         }
-        else if(bit < 25)
+        else if(bit < 63)
         {
-            free(data);
+            g_free(data);
             bit++; // It might be not enough space
         }
         else
         {
-            free(data);
+            g_free(data);
             return false;
         }
     }
@@ -622,28 +637,73 @@ DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
     }
 }
 
+static bool rm_node_internal(DhNbtInstance& child, NBT* root)
+{
+    if(child.is_non_null())
+    {
+        NBT* prev = child.get_current_nbt()->prev;
+        NBT* next = child.get_current_nbt()->next;
+
+        child.get_current_nbt()->prev = nullptr;
+        child.get_current_nbt()->next = nullptr;
+        NBT_Free(child.get_current_nbt());
+
+        if(prev) prev->next = next;
+        if(next) next->prev = prev;
+        if(!prev) root->child = next;
+        return true;
+    }
+    else return false;
+}
+
 bool DhNbtInstance::rm_node(const char* key)
 {
     DhNbtInstance child(*this);
     if(child.child(key))
-    {
-        if(child.is_non_null())
-        {
-            NBT* prev = child.current_nbt->prev;
-            NBT* next = child.current_nbt->next;
-
-            child.current_nbt->prev = nullptr;
-            child.current_nbt->next = nullptr;
-            NBT_Free(child.current_nbt);
-
-            if(prev) prev->next = next;
-            if(next) next->prev = prev;
-            if(!prev) current_nbt->child = next;
-            return true;
-        }
-        else return false;
-    }
+        return rm_node_internal(child, current_nbt);
     else return false;
+}
+
+bool DhNbtInstance::rm_node(int index)
+{
+    DhNbtInstance child(*this);
+    if(child.child(index))
+        return rm_node_internal(child, current_nbt);
+    else return false;
+}
+
+int DhNbtInstance::child_value()
+{
+    DhNbtInstance child(*this);
+    if(child.child())
+    {
+        int ret = 0;
+        for(; child.is_non_null() ; child.next())
+            ret++;
+        return ret;
+    }
+    else return 0;
+}
+
+void DhNbtInstance::self_free()
+{
+    std::vector<DhNbtInstance> vector;
+    DhNbtInstance child(*this);
+    if(child.child())
+    {
+        for(; child.is_non_null() ; child.next())
+            vector.push_back(child);
+    }
+    for(auto item : vector)
+    {
+        DhNbtInstance child(item);
+        if(child.child())
+            item.self_free();
+        DhNbtInstance parent(item);
+        parent.parent();
+        NBT* root = parent.current_nbt;
+        rm_node_internal(item, root);
+    }
 }
 
 extern "C"
