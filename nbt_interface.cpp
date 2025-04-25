@@ -99,6 +99,29 @@ DhNbtInstance::DhNbtInstance(const char* filename)
     }
 }
 
+DhNbtInstance::DhNbtInstance(const char* filename, bool temporary_root)
+{
+    gsize len = 0;
+    guint8* content = nullptr;
+    GError* err = nullptr;
+
+    if(g_file_get_contents(filename, (char**)&content, &len, &err))
+    {
+        NBT* nbt = NBT_Parse(content, len);
+        g_free(content);
+        if(nbt)
+        {
+            parse_nbt(*this, nbt, temporary_root);
+        }
+        else original_nbt = nullptr;
+    }
+    else
+    {
+        g_error_free(err);
+        original_nbt = nullptr;
+    }
+}
+
 DhNbtInstance::DhNbtInstance(NBT* nbt, bool tr)
 {
     parse_nbt(*this, nbt, tr);

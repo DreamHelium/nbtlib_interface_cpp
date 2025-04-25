@@ -41,6 +41,7 @@ public:
     original_nbt = nullptr;
   };
   DhNbtInstance(const char *filename);
+  DhNbtInstance(const char* filename, bool temporary_root);
   DhNbtInstance(NBT *root, bool temporary_root);
   ~DhNbtInstance();
 

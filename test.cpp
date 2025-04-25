@@ -20,7 +20,7 @@ int main()
     std::cout << instance.get_nbt_rc() << "\n";
     */
 
-    DhNbtInstance root(NULL, DH_TYPE_Compound);
+    DhNbtInstance root(DH_TYPE_Compound, NULL, false);
     DhNbtInstance child((gint8)10, "key", true);
     std::cout << (child.get_original_nbt()->key) << "\n";
     root.prepend(child);
