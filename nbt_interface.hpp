@@ -42,7 +42,7 @@ public:
   };
   DhNbtInstance(const char *filename);
   DhNbtInstance(const char* filename, bool temporary_root);
-  DhNbtInstance(NBT *root, bool temporary_root);
+  DhNbtInstance(NbtNode *root, bool temporary_root);
   ~DhNbtInstance();
 
   DhNbtInstance(gint8 val, const char *key, bool temporary_root);
@@ -66,23 +66,21 @@ public:
 
   DhNbtInstance dup_current_as_original(bool temporary_root);
 
-  NBT *get_original_nbt() { return original_nbt; }
-  NBT *get_current_nbt() { return current_nbt; }
-  auto get_tree_struct() { return tree_struct; }
+  NbtNode *get_original_nbt() { return original_nbt; }
+  NbtNode *get_current_nbt() { return current_nbt; }
   int  get_nbt_rc()      { return original_nbt_storage.use_count(); }
 
-  void set_original_nbt(NBT* nbt) 
+  void set_original_nbt(NbtNode* nbt)
   { 
     original_nbt = nbt;
-    original_nbt_storage.reset(nbt, NBT_Free); 
+    original_nbt_storage.reset(nbt, nbt_node_free);
   }
-  void set_temp_original_nbt(NBT* nbt)
+  void set_temp_original_nbt(NbtNode* nbt)
   {
     original_nbt = nbt;
-    original_nbt_storage.reset(nbt, [](NBT*) {});
+    original_nbt_storage.reset(nbt, [](NbtNode*) {});
   }
-  void set_current_nbt(NBT* nbt)  { current_nbt = nbt; }
-  void set_tree_struct(std::vector<NBT*> arr) { tree_struct = arr; }
+  void set_current_nbt(NbtNode* nbt)  { current_nbt = nbt; }
 
   DhNbtType get_type();
   bool is_non_null();
@@ -128,13 +126,11 @@ public:
 
 private:
     /* Root NBT storage */
-    std::shared_ptr<NBT> original_nbt_storage;
+    std::shared_ptr<NbtNode> original_nbt_storage;
     /* Real Root NBT */
-    NBT* original_nbt;
+    NbtNode* original_nbt;
     /* The current position of NBT */
-    NBT* current_nbt;
-    /* This can be nonexist, based on the implement */
-    std::vector<NBT*> tree_struct;
+    NbtNode* current_nbt;
 };
 
 extern "C"

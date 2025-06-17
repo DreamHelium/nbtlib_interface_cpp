@@ -22,7 +22,7 @@ int main()
 
     DhNbtInstance root(DH_TYPE_Compound, NULL, false);
     DhNbtInstance child((gint8)10, "key", true);
-    std::cout << (child.get_original_nbt()->key) << "\n";
+    // std::cout << (child.get_original_nbt()->key) << "\n";
     root.prepend(child);
     std::cout << root.child() << "\n";
     std::cout << root.get_key() << "\n";
