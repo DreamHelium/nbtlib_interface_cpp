@@ -280,9 +280,9 @@ bool DhNbtInstance::is_non_null()
 
 bool DhNbtInstance::prev()
 {
-    if(this->is_non_null())
+    if(is_non_null())
     {
-        this->current_nbt = this->current_nbt->prev;
+        current_nbt = current_nbt->prev;
         return true;
     }
     else return false;
@@ -637,18 +637,16 @@ DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
         DhNbtInstance ret(get_type(), get_key(), temp_root);
 
         DhNbtInstance origin_child(*this);
-        DhNbtInstance head;
         DhNbtInstance prev;
-        DhNbtInstance cur;
 
         origin_child.child();
         DhNbtInstance oc(origin_child);
         /* Assign the child value */
         for(; origin_child.is_non_null() ; origin_child.next())
         {
-            cur = origin_child.dup_current_as_original(true);
-                ret.insert_after(head, cur);
-            if(origin_child == oc) head = cur;
+            DhNbtInstance cur = origin_child.dup_current_as_original (true);
+            ret.insert_after(prev, cur);
+            prev = cur;
         }
         return ret;
     }
