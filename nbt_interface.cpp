@@ -527,76 +527,74 @@ void DhNbtInstance::set_string(const char* str)
 
 bool DhNbtInstance::save_to_file(const char* pos)
 {
-    /* TODO */
-//     NBT* root = get_original_nbt();
-//     int bit = 1;
-//     size_t len = 0;
-// #ifndef LIBNBT_USE_LIBDEFLATE
-//     size_t old_len = 0;
-// #endif
-//     uint8_t* data = NULL;
-//     while(1)
-//     {
-//         len = 1 << bit;
-//         data = (uint8_t*)g_new0(uint8_t, len);
-//         NBT_Error err;
-//         int ret = NBT_Pack_Opt(root, data, &len, NBT_Compression_GZIP, &err);
-//         if(ret == 0)
-//         {
-// #ifndef LIBNBT_USE_LIBDEFLATE
-//             if(old_len != len) // compress not finish due to a bug in old libnbt (in submodule)
-//             {
-//                 old_len = len;
-//                 g_free(data);
-//                 bit++;
-//                 continue;
-//             }
-// #endif
-//             if(pos)
-//             {
-//                 GFile* file = g_file_new_for_path(pos);
-//                 if(!file)
-//                 {
-//                     g_free(data);
-//                     return false;
-//                 }
-//                 if(!g_file_query_exists(file, NULL))
-//                     g_file_create(file, G_FILE_CREATE_NONE, NULL, NULL);
-//                 GFileIOStream* fios = g_file_open_readwrite(file, NULL, NULL);
-//                 if(fios)
-//                 {
-//                     GOutputStream* os = g_io_stream_get_output_stream(G_IO_STREAM(fios));
-//                     int ret_d = g_output_stream_write(os, data, len, NULL, NULL);
-//                     bool ret = (ret_d == -1 ? false : true);
-//                     g_object_unref(fios);
-//                     g_free(data);
-//                     g_object_unref(file);
-//                     return ret;
-//                 }
-//                 else
-//                 {
-//                     g_object_unref(file);
-//                     g_free(data);
-//                     return false;
-//                 }
-//             }
-//             else
-//             {
-//                 return false;
-//             }
-//         }
-//         else if(bit < 63)
-//         {
-//             g_free(data);
-//             bit++; // It might be not enough space
-//         }
-//         else
-//         {
-//             g_free(data);
-//             return false;
-//         }
-//     }
-    return false;
+    auto root = get_original_nbt();
+    int bit = 1;
+    size_t len = 0;
+#ifndef LIBNBT_USE_LIBDEFLATE
+    size_t old_len = 0;
+#endif
+    uint8_t* data = NULL;
+    while(1)
+    {
+        len = 1 << bit;
+        data = (uint8_t*)g_new0(uint8_t, len);
+        NBT_Error err;
+        int ret = nbt_node_pack_opt(root, data, &len, NBT_Compression_GZIP, &err);
+        if(ret == 0)
+        {
+#ifndef LIBNBT_USE_LIBDEFLATE
+            if(old_len != len) // compress not finish due to a bug in old libnbt (in submodule)
+            {
+                old_len = len;
+                g_free(data);
+                bit++;
+                continue;
+            }
+#endif
+            if(pos)
+            {
+                GFile* file = g_file_new_for_path(pos);
+                if(!file)
+                {
+                    g_free(data);
+                    return false;
+                }
+                if(!g_file_query_exists(file, NULL))
+                    g_file_create(file, G_FILE_CREATE_NONE, NULL, NULL);
+                GFileIOStream* fios = g_file_open_readwrite(file, NULL, NULL);
+                if(fios)
+                {
+                    GOutputStream* os = g_io_stream_get_output_stream(G_IO_STREAM(fios));
+                    auto ret_d = g_output_stream_write(os, data, len, NULL, NULL);
+                    bool ret = (ret_d != -1);
+                    g_object_unref(fios);
+                    g_free(data);
+                    g_object_unref(file);
+                    return ret;
+                }
+                else
+                {
+                    g_object_unref(file);
+                    g_free(data);
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else if(bit < 63)
+        {
+            g_free(data);
+            bit++; // It might be not enough space
+        }
+        else
+        {
+            g_free(data);
+            return false;
+        }
+    }
 }
 
 DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
@@ -637,23 +635,21 @@ DhNbtInstance DhNbtInstance::dup_current_as_original(bool temp_root)
     {
         /* The outer struct */
         DhNbtInstance ret(get_type(), get_key(), temp_root);
+
         DhNbtInstance origin_child(*this);
         DhNbtInstance head;
         DhNbtInstance prev;
         DhNbtInstance cur;
+
         origin_child.child();
         DhNbtInstance oc(origin_child);
         /* Assign the child value */
         for(; origin_child.is_non_null() ; origin_child.next())
         {
             cur = origin_child.dup_current_as_original(true);
+                ret.insert_after(head, cur);
             if(origin_child == oc) head = cur;
-            cur.current_nbt->prev = prev.current_nbt;
-            if(prev.is_non_null()) prev.current_nbt->next = cur.current_nbt;
-            prev = cur;
         }
-        /* Then assign the parent */
-        ret.prepend(head);
         return ret;
     }
 }
