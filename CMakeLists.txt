@@ -29,7 +29,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/library_config/dhnbt_interface_cpp.p
 
 install(FILES "nbt_interface.hpp" DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 install(FILES "libnbt/nbt.h" DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/libnbt")
-
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dhnbt_interface_cpp.pc" DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig")
 install(TARGETS dhnbt_interface_cpp nbt-glib
         EXPORT dhnbt_interface_cpp
         ARCHIVE DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}"
