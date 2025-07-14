@@ -1,0 +1,9 @@
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: dhnbt_interface_cpp
+Version: @PROJECT_VERSION@
+Description: NBT Interface by Dream Helium
+URL: https://github.com/DreamHelium/nbt_interface_cpp
+Libs: -L${libdir} -ldhnbt_interface_cpp -lnbt-glib -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lz
+Cflags: -pthread -I${includedir}
