@@ -22,122 +22,165 @@
 /* The enum type for recognize */
 #ifndef DH_NBT_TYPES
 #define DH_NBT_TYPES
-typedef enum {
-    DH_TYPE_INVALID, DH_TYPE_End, DH_TYPE_Byte, DH_TYPE_Short, DH_TYPE_Int, DH_TYPE_Long, DH_TYPE_Float, DH_TYPE_Double, DH_TYPE_Byte_Array, DH_TYPE_String, DH_TYPE_List, DH_TYPE_Compound, DH_TYPE_Int_Array, DH_TYPE_Long_Array} DhNbtType;
+typedef enum
+{
+    DH_TYPE_INVALID,
+    DH_TYPE_End,
+    DH_TYPE_Byte,
+    DH_TYPE_Short,
+    DH_TYPE_Int,
+    DH_TYPE_Long,
+    DH_TYPE_Float,
+    DH_TYPE_Double,
+    DH_TYPE_Byte_Array,
+    DH_TYPE_String,
+    DH_TYPE_List,
+    DH_TYPE_Compound,
+    DH_TYPE_Int_Array,
+    DH_TYPE_Long_Array
+} DhNbtType;
+
 #include "libnbt/nbt.h"
 #endif
 
 #include <glib.h>
-#include <vector>
 #include <memory>
+#include <vector>
 
 class DhNbtInstance
 {
-public:
-  /* Create a null instance */
-  DhNbtInstance() 
-  {
-    current_nbt = nullptr;
-    original_nbt = nullptr;
-  };
-  DhNbtInstance(const char *filename);
-  DhNbtInstance(const char* filename, bool temporary_root);
-  DhNbtInstance(NbtNode *root, bool temporary_root);
-  ~DhNbtInstance();
+  public:
+    /* Create a null instance */
+    DhNbtInstance ()
+    {
+        current_nbt = nullptr;
+        original_nbt = nullptr;
+    };
+    DhNbtInstance (const char *filename);
+    DhNbtInstance (const char *filename, bool temporary_root);
+    DhNbtInstance (NbtNode *root, bool temporary_root);
+    ~DhNbtInstance ();
 
-  DhNbtInstance(gint8 val, const char *key, bool temporary_root);
-  DhNbtInstance(gint16 val, const char *key, bool temporary_root);
-  DhNbtInstance(gint32 val, const char *key, bool temporary_root);
-  DhNbtInstance(gint64 val, const char *key, bool temporary_root);
-  DhNbtInstance(float val, const char *key, bool temporary_root);
-  DhNbtInstance(double val, const char *key, bool temporary_root);
-  DhNbtInstance(const char *val, const char *key, bool temporary_root);
-  DhNbtInstance(const gint8 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(const gint32 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(const gint64 *val, int len, const char *key, bool temporary_root);
-  DhNbtInstance(DhNbtType type, const char* key, bool temporary_root);
+    DhNbtInstance (gint8 val, const char *key, bool temporary_root);
+    DhNbtInstance (gint16 val, const char *key, bool temporary_root);
+    DhNbtInstance (gint32 val, const char *key, bool temporary_root);
+    DhNbtInstance (gint64 val, const char *key, bool temporary_root);
+    DhNbtInstance (float val, const char *key, bool temporary_root);
+    DhNbtInstance (double val, const char *key, bool temporary_root);
+    DhNbtInstance (const char *val, const char *key, bool temporary_root);
+    DhNbtInstance (const gint8 *val, int len, const char *key,
+                   bool temporary_root);
+    DhNbtInstance (const gint32 *val, int len, const char *key,
+                   bool temporary_root);
+    DhNbtInstance (const gint64 *val, int len, const char *key,
+                   bool temporary_root);
+    DhNbtInstance (DhNbtType type, const char *key, bool temporary_root);
 
-  bool operator ==(DhNbtInstance a)
-  {
-    if(current_nbt == a.current_nbt && original_nbt == a.original_nbt)
-      return true;
-    else return false;
-  };
+    bool
+    operator== (DhNbtInstance a)
+    {
+        if (current_nbt == a.current_nbt && original_nbt == a.original_nbt)
+            return true;
+        else
+            return false;
+    }
 
-  DhNbtInstance dup_current_as_original(bool temporary_root);
+    DhNbtInstance dup_current_as_original (bool temporary_root);
 
-  NbtNode *get_original_nbt() { return original_nbt; }
-  NbtNode *get_current_nbt() { return current_nbt; }
-  int  get_nbt_rc()      { return original_nbt_storage.use_count(); }
+    NbtNode *
+    get_original_nbt ()
+    {
+        return original_nbt;
+    }
 
-  void set_original_nbt(NbtNode* nbt)
-  { 
-    original_nbt = nbt;
-    original_nbt_storage.reset(nbt, nbt_node_free);
-  }
-  void set_temp_original_nbt(NbtNode* nbt)
-  {
-    original_nbt = nbt;
-    original_nbt_storage.reset(nbt, [](NbtNode*) {});
-  }
-  void set_current_nbt(NbtNode* nbt)  { current_nbt = nbt; }
+    NbtNode *
+    get_current_nbt ()
+    {
+        return current_nbt;
+    }
 
-  DhNbtType get_type();
-  bool is_non_null();
-  bool prev();
-  bool next();
-  bool parent();
-  int child_value();
-  bool child();
-  bool child(const char* key);
-  bool child(int index);
-  void goto_root();
-  bool is_type(DhNbtType type);
-  const char *get_key();
-  void set_key(const char* key);
-  void make_invalid();
-  bool rm_node(const char* key);
-  bool rm_node(int index);
+    int
+    get_nbt_rc ()
+    {
+        return original_nbt_storage.use_count ();
+    }
 
-  void self_free();
+    void
+    set_original_nbt (NbtNode *nbt)
+    {
+        original_nbt = nbt;
+        original_nbt_storage.reset (nbt, nbt_node_free);
+    }
 
-  gint8 get_byte();
-  gint16 get_short();
-  gint32 get_int();
-  gint64 get_long();
-  gint64 get_integer();
+    void
+    set_temp_original_nbt (NbtNode *nbt)
+    {
+        original_nbt = nbt;
+        original_nbt_storage.reset (nbt, [] (NbtNode *) {});
+    }
 
-  float get_float();
-  double get_double();
+    void
+    set_current_nbt (NbtNode *nbt)
+    {
+        current_nbt = nbt;
+    }
 
-  /* The array type should not be freed unless the memory is freed! */
-  const gchar *get_string();
-  const gint8 *get_byte_array(int& len);
-  const gint32 *get_int_array(int& len);
-  const gint64 *get_long_array(int& len);
+    DhNbtType get_type ();
+    bool is_non_null ();
+    bool prev ();
+    bool next ();
+    bool parent ();
+    int child_value ();
+    bool child ();
+    bool child (const char *key);
+    bool child (int index);
+    void goto_root ();
+    bool is_type (DhNbtType type);
+    const char *get_key ();
+    void set_key (const char *key);
+    void make_invalid ();
+    bool rm_node (const char *key);
+    bool rm_node (int index);
 
-  void set_string(const char* str);
+    void self_free ();
 
-  bool prepend(DhNbtInstance child);
-  bool insert_after(DhNbtInstance sibling, DhNbtInstance node);
-  bool insert_before(DhNbtInstance sibling, DhNbtInstance node);
+    gint8 get_byte ();
+    gint16 get_short ();
+    gint32 get_int ();
+    gint64 get_long ();
+    gint64 get_integer ();
 
-  bool save_to_file(const char *pos);
+    float get_float ();
+    double get_double ();
 
-private:
+    /* The array type should not be freed unless the memory is freed! */
+    const gchar *get_string ();
+    const gint8 *get_byte_array (int &len);
+    const gint32 *get_int_array (int &len);
+    const gint64 *get_long_array (int &len);
+
+    void set_string (const char *str);
+
+    bool prepend (DhNbtInstance child);
+    bool insert_after (DhNbtInstance sibling, DhNbtInstance node);
+    bool insert_before (DhNbtInstance sibling, DhNbtInstance node);
+
+    bool save_to_file (const char *pos);
+
+  private:
     /* Root NBT storage */
     std::shared_ptr<NbtNode> original_nbt_storage;
     /* Real Root NBT */
-    NbtNode* original_nbt;
+    NbtNode *original_nbt;
     /* The current position of NBT */
-    NbtNode* current_nbt;
+    NbtNode *current_nbt;
 };
 
 extern "C"
 {
 #endif
-  void* dh_nbt_instance_cpp_new();
-  void  dh_nbt_instance_cpp_free(void* mem);
+    void *dh_nbt_instance_cpp_new ();
+    void dh_nbt_instance_cpp_free (void *mem);
 #ifdef __cplusplus
 }
 #endif
