@@ -57,6 +57,8 @@ class DhNbtInstance
         original_nbt = nullptr;
     };
     DhNbtInstance (const char *filename);
+    DhNbtInstance (const char *filename, DhProgressSet set_func,
+                   void *main_klass, GCancellable *cancellable, int min, int max);
     DhNbtInstance (const char *filename, bool temporary_root);
     DhNbtInstance (NbtNode *root, bool temporary_root);
     ~DhNbtInstance ();
@@ -77,7 +79,7 @@ class DhNbtInstance
     DhNbtInstance (DhNbtType type, const char *key, bool temporary_root);
 
     bool
-    operator== (DhNbtInstance a)
+    operator== (const DhNbtInstance &a) const
     {
         if (current_nbt == a.current_nbt && original_nbt == a.original_nbt)
             return true;

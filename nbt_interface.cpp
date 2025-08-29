@@ -118,6 +118,38 @@ DhNbtInstance::DhNbtInstance (const char *filename)
         }
 }
 
+DhNbtInstance::DhNbtInstance (const char *filename, DhProgressSet set_func,
+                              void *main_klass, GCancellable *cancellable, int min, int max)
+{
+    gsize len = 0;
+    guint8 *content = nullptr;
+    GError *err = nullptr;
+
+    if (g_file_get_contents (filename, (char **)&content, &len, &err))
+        {
+            NbtNode *nbt = nbt_node_new_with_progress (
+                content, len, set_func, main_klass, cancellable, min, max);
+            g_free (content);
+            if (nbt)
+                {
+                    parse_nbt_real (*this, nbt);
+                }
+            else
+                {
+                    std::cerr << "Failed to parse NBT" << '\n';
+                    original_nbt = nullptr;
+                    current_nbt = nullptr;
+                }
+        }
+    else
+        {
+            std::cerr << "Failed to read File" << '\n';
+            g_error_free (err);
+            original_nbt = nullptr;
+            current_nbt = nullptr;
+        }
+}
+
 DhNbtInstance::DhNbtInstance (const char *filename, bool temporary_root)
 {
     gsize len = 0;
