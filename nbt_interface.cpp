@@ -300,7 +300,7 @@ DhNbtInstance::DhNbtInstance (const gint64 *val, int len, const char *key,
     auto new_nbt = ret_non_filled_nbt ();
     auto new_nbt_data = g_new0 (NbtData, 1);
     new_nbt_data->type = TAG_Long_Array;
-    int byte = len * sizeof (int64_t);
+    gsize byte = len * sizeof (int64_t);
     int64_t *new_array = (gint64 *)malloc (byte);
     memcpy (new_array, val, byte);
     new_nbt_data->value_a.value = new_array;
