@@ -80,6 +80,12 @@ class DhNbtInstance
     DhNbtInstance (DhNbtType type, const char *key, bool temporary_root);
 
     bool
+    operator()() const
+    {
+        return is_non_null();
+    }
+
+    bool
     operator== (const DhNbtInstance &a) const
     {
         if (current_nbt == a.current_nbt && original_nbt == a.original_nbt)
@@ -129,7 +135,7 @@ class DhNbtInstance
     }
 
     DhNbtType get_type ();
-    bool is_non_null ();
+    bool is_non_null () const;
     bool prev ();
     bool next ();
     bool parent ();

@@ -334,7 +334,7 @@ DhNbtInstance::get_type ()
 }
 
 bool
-DhNbtInstance::is_non_null ()
+DhNbtInstance::is_non_null () const
 {
     return (this->current_nbt != NULL);
 }
