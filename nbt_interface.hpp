@@ -121,6 +121,7 @@ class DhNbtInstance
         original_nbt_storage.reset (nbt, nbt_node_free);
     }
 
+    /** temp root will not free. */
     void
     set_temp_original_nbt (NbtNode *nbt)
     {

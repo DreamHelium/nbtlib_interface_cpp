@@ -119,7 +119,8 @@ DhNbtInstance::DhNbtInstance (const char *filename)
 }
 
 DhNbtInstance::DhNbtInstance (const char *filename, DhProgressSet set_func,
-                              void *main_klass, GCancellable *cancellable, int min, int max)
+                              void *main_klass, GCancellable *cancellable,
+                              int min, int max)
 {
     gsize len = 0;
     guint8 *content = nullptr;
@@ -650,6 +651,8 @@ bool
 DhNbtInstance::save_to_file (const char *pos)
 {
     auto root = get_original_nbt ();
+    if (!root)
+        return false;
     int bit = 1;
     size_t len = 0;
 #ifndef LIBNBT_USE_LIBDEFLATE
@@ -659,7 +662,7 @@ DhNbtInstance::save_to_file (const char *pos)
     while (1)
         {
             len = 1 << bit;
-            data = (uint8_t *)g_new0 (uint8_t, len);
+            data = g_new0 (uint8_t, len);
             NBT_Error err;
             int ret = nbt_node_pack_opt (root, data, &len,
                                          NBT_Compression_GZIP, &err);
@@ -684,8 +687,15 @@ DhNbtInstance::save_to_file (const char *pos)
                                     return false;
                                 }
                             if (!g_file_query_exists (file, NULL))
-                                g_file_create (file, G_FILE_CREATE_NONE, NULL,
-                                               NULL);
+                                {
+                                    g_file_make_directory_with_parents (
+                                        file, NULL, NULL);
+                                    g_file_delete (file, NULL, NULL);
+                                    auto os = g_file_create (
+                                        file, G_FILE_CREATE_NONE, NULL, NULL);
+                                    g_object_unref (os);
+                                }
+
                             GFileIOStream *fios
                                 = g_file_open_readwrite (file, NULL, NULL);
                             if (fios)
@@ -709,9 +719,7 @@ DhNbtInstance::save_to_file (const char *pos)
                                 }
                         }
                     else
-                        {
-                            return false;
-                        }
+                        return false;
                 }
             else if (bit < 63)
                 {
