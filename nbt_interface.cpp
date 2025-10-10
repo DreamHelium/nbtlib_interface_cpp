@@ -70,7 +70,7 @@ dh_strdup (const char *o_str)
     || _POSIX_C_SOURCE >= 200809L
     return strdup (o_str); // use strdup if provided
 #else
-    char *str = malloc ((strlen (o_str) + sizeof ("")) * sizeof (char));
+    char *str = static_cast<char*>(malloc ((strlen (o_str) + sizeof ("")) * sizeof (char)));
     if (str)
         {
             strcpy (str, o_str);
