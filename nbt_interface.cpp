@@ -70,7 +70,8 @@ dh_strdup (const char *o_str)
     || _POSIX_C_SOURCE >= 200809L
     return strdup (o_str); // use strdup if provided
 #else
-    char *str = static_cast<char*>(malloc ((strlen (o_str) + sizeof ("")) * sizeof (char)));
+    char *str = static_cast<char *> (
+        malloc ((strlen (o_str) + sizeof ("")) * sizeof (char)));
     if (str)
         {
             strcpy (str, o_str);
@@ -132,9 +133,7 @@ DhNbtInstance::DhNbtInstance (const char *filename, DhProgressSet set_func,
                 content, len, set_func, main_klass, cancellable, min, max);
             g_free (content);
             if (nbt)
-                {
-                    parse_nbt_real (*this, nbt);
-                }
+                parse_nbt_real (*this, nbt);
             else
                 {
                     std::cerr << "Failed to parse NBT" << '\n';
@@ -696,8 +695,9 @@ DhNbtInstance::save_to_file (const char *pos)
                                     g_object_unref (os);
                                 }
 
-                            GFileIOStream *fios
-                                = g_file_open_readwrite (file, NULL, NULL);
+                            GFileIOStream *fios = g_file_replace_readwrite (
+                                file, NULL, FALSE,
+                                G_FILE_CREATE_REPLACE_DESTINATION, NULL, NULL);
                             if (fios)
                                 {
                                     GOutputStream *os
@@ -732,6 +732,31 @@ DhNbtInstance::save_to_file (const char *pos)
                     return false;
                 }
         }
+}
+
+bool
+DhNbtInstance::save_to_file_full (const char *pos, DhProgressFullSet set_func,
+                                  void *main_klass, GCancellable *cancellable)
+{
+    auto root = get_original_nbt ();
+    if (!root)
+        return false;
+    gsize len = 0;
+    GFile *file = g_file_new_for_path (pos);
+    GError *err = nullptr;
+    auto data = nbt_node_pack_full (root, &len, NBT_Compression_GZIP, &err,
+                                    set_func, main_klass, cancellable, file);
+    g_object_unref (file);
+    if (data)
+        g_free (data);
+    if (err)
+        {
+            std::cerr << g_quark_to_string (err->domain) << " " << err->message
+                      << '\n';
+            return false;
+        }
+    else
+        return true;
 }
 
 DhNbtInstance
@@ -843,6 +868,9 @@ DhNbtInstance::child_value ()
 void
 DhNbtInstance::self_free ()
 {
+    auto node = get_original_nbt ();
+    if (node)
+        nbt_node_free (node);
 }
 
 extern "C"

@@ -80,9 +80,9 @@ class DhNbtInstance
     DhNbtInstance (DhNbtType type, const char *key, bool temporary_root);
 
     bool
-    operator()() const
+    operator() () const
     {
-        return is_non_null();
+        return is_non_null ();
     }
 
     bool
@@ -176,6 +176,8 @@ class DhNbtInstance
     bool insert_before (DhNbtInstance sibling, DhNbtInstance node);
 
     bool save_to_file (const char *pos);
+    bool save_to_file_full (const char *pos, DhProgressFullSet set_func,
+                            void *main_klass, GCancellable *cancellable);
 
   private:
     /* Root NBT storage */
