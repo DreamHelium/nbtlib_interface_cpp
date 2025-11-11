@@ -57,9 +57,12 @@ class DhNbtInstance
         original_nbt = nullptr;
     };
     explicit DhNbtInstance (const char *filename);
-    DhNbtInstance (const char *filename, DhProgressSet set_func,
+    DhNbtInstance (const char *filename, DhProgressFullSet set_func,
                    void *main_klass, GCancellable *cancellable, int min,
                    int max);
+    DhNbtInstance (const char *filename, DhProgressFullSet set_func,
+                   void *main_klass, GCancellable *cancellable, int min,
+                   int max, GError **err);
     DhNbtInstance (const char *filename, bool temporary_root);
     DhNbtInstance (NbtNode *root, bool temporary_root);
     ~DhNbtInstance ();

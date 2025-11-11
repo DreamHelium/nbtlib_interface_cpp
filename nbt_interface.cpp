@@ -119,7 +119,7 @@ DhNbtInstance::DhNbtInstance (const char *filename)
         }
 }
 
-DhNbtInstance::DhNbtInstance (const char *filename, DhProgressSet set_func,
+DhNbtInstance::DhNbtInstance (const char *filename, DhProgressFullSet set_func,
                               void *main_klass, GCancellable *cancellable,
                               int min, int max)
 {
@@ -145,6 +145,36 @@ DhNbtInstance::DhNbtInstance (const char *filename, DhProgressSet set_func,
         {
             std::cerr << "Failed to read File" << '\n';
             g_error_free (err);
+            original_nbt = nullptr;
+            current_nbt = nullptr;
+        }
+}
+
+DhNbtInstance::DhNbtInstance (const char *filename, DhProgressFullSet set_func,
+                              void *main_klass, GCancellable *cancellable,
+                              int min, int max, GError **err)
+{
+    gsize len = 0;
+    guint8 *content = nullptr;
+
+    if (g_file_get_contents (filename, (char **)&content, &len, err))
+        {
+            NbtNode *nbt
+                = nbt_node_new_opt (content, len, err, set_func, main_klass,
+                                    cancellable, min, max);
+            g_free (content);
+            if (nbt)
+                parse_nbt_real (*this, nbt);
+            else
+                {
+                    std::cerr << "Failed to parse NBT" << '\n';
+                    original_nbt = nullptr;
+                    current_nbt = nullptr;
+                }
+        }
+    else
+        {
+            std::cerr << "Failed to read File" << '\n';
             original_nbt = nullptr;
             current_nbt = nullptr;
         }
@@ -649,89 +679,7 @@ DhNbtInstance::set_string (const char *str)
 bool
 DhNbtInstance::save_to_file (const char *pos)
 {
-    auto root = get_original_nbt ();
-    if (!root)
-        return false;
-    int bit = 1;
-    size_t len = 0;
-#ifndef LIBNBT_USE_LIBDEFLATE
-    size_t old_len = 0;
-#endif
-    uint8_t *data = NULL;
-    while (1)
-        {
-            len = 1 << bit;
-            data = g_new0 (uint8_t, len);
-            NBT_Error err;
-            int ret = nbt_node_pack_opt (root, data, &len,
-                                         NBT_Compression_GZIP, &err);
-            if (ret == 0)
-                {
-#ifndef LIBNBT_USE_LIBDEFLATE
-                    if (old_len != len) // compress not finish due to a bug in
-                                        // old libnbt (in submodule)
-                        {
-                            old_len = len;
-                            g_free (data);
-                            bit++;
-                            continue;
-                        }
-#endif
-                    if (pos)
-                        {
-                            GFile *file = g_file_new_for_path (pos);
-                            if (!file)
-                                {
-                                    g_free (data);
-                                    return false;
-                                }
-                            if (!g_file_query_exists (file, NULL))
-                                {
-                                    g_file_make_directory_with_parents (
-                                        file, NULL, NULL);
-                                    g_file_delete (file, NULL, NULL);
-                                    auto os = g_file_create (
-                                        file, G_FILE_CREATE_NONE, NULL, NULL);
-                                    g_object_unref (os);
-                                }
-
-                            GFileIOStream *fios = g_file_replace_readwrite (
-                                file, NULL, FALSE,
-                                G_FILE_CREATE_REPLACE_DESTINATION, NULL, NULL);
-                            if (fios)
-                                {
-                                    GOutputStream *os
-                                        = g_io_stream_get_output_stream (
-                                            G_IO_STREAM (fios));
-                                    auto ret_d = g_output_stream_write (
-                                        os, data, len, NULL, NULL);
-                                    bool ret = (ret_d != -1);
-                                    g_object_unref (fios);
-                                    g_free (data);
-                                    g_object_unref (file);
-                                    return ret;
-                                }
-                            else
-                                {
-                                    g_object_unref (file);
-                                    g_free (data);
-                                    return false;
-                                }
-                        }
-                    else
-                        return false;
-                }
-            else if (bit < 63)
-                {
-                    g_free (data);
-                    bit++; // It might be not enough space
-                }
-            else
-                {
-                    g_free (data);
-                    return false;
-                }
-        }
+    return save_to_file_full (pos, nullptr, nullptr, nullptr);
 }
 
 bool
