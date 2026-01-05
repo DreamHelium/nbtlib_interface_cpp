@@ -161,7 +161,7 @@ DhNbtInstance::DhNbtInstance (const char *filename, DhProgressFullSet set_func,
         {
             NbtNode *nbt
                 = nbt_node_new_opt (content, len, err, set_func, main_klass,
-                                    cancellable, min, max);
+                                    cancellable, min, max, 0);
             g_free (content);
             if (nbt)
                 parse_nbt_real (*this, nbt);
